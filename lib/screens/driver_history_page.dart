@@ -1,18 +1,21 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-class DriverHistoryPage extends StatefulWidget {
+import '../providers/auth_provider.dart';
+
+class DriverHistoryPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> driver;
   const DriverHistoryPage({super.key, required this.driver});
 
   @override
-  State<DriverHistoryPage> createState() => _DriverHistoryPageState();
+  ConsumerState<DriverHistoryPage> createState() => _DriverHistoryPageState();
 }
 
-class _DriverHistoryPageState extends State<DriverHistoryPage> {
+class _DriverHistoryPageState extends ConsumerState<DriverHistoryPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, List<dynamic>> _events = {};
@@ -22,16 +25,22 @@ class _DriverHistoryPageState extends State<DriverHistoryPage> {
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    _fetchHistory();
+    // Build context is not fully ready here for ref, but initialize works in post frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchHistory();
+    });
   }
 
   Future<void> _fetchHistory() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
+      final token = ref.read(authProvider)?.token;
       final response = await http.get(
         Uri.parse(
-          'http://localhost:8080/admin/drivers/${widget.driver['id']}/history',
+          'http://10.68.139.36:8080/admin/drivers/${widget.driver['id']}/history',
         ),
+        headers: token != null ? {'Authorization': 'Bearer $token'} : null,
       );
 
       if (response.statusCode == 200) {
@@ -49,14 +58,20 @@ class _DriverHistoryPageState extends State<DriverHistoryPage> {
           newEvents[day]!.add(ride);
         }
 
-        setState(() {
-          _events = newEvents;
-        });
+        if (mounted) {
+          setState(() {
+            _events = newEvents;
+          });
+        }
+      } else {
+        debugPrint('Failed to fetch history: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error fetching history: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -66,7 +81,13 @@ class _DriverHistoryPageState extends State<DriverHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedRides = _getEventsForDay(_selectedDay ?? _focusedDay);
+    // Normalize to compare without time
+    final normalizedSelected = DateTime(
+      (_selectedDay ?? _focusedDay).year,
+      (_selectedDay ?? _focusedDay).month,
+      (_selectedDay ?? _focusedDay).day,
+    );
+    final selectedRides = _getEventsForDay(normalizedSelected);
     final totalSales = selectedRides.fold<double>(
       0,
       (sum, ride) =>
@@ -75,7 +96,7 @@ class _DriverHistoryPageState extends State<DriverHistoryPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.driver['name'] ?? 'ドライバー'} の売上履歴'),
+        title: Text('${widget.driver['name'] ?? 'ドライバ�E'} の売上履歴'),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchHistory),
         ],
@@ -125,15 +146,15 @@ class _DriverHistoryPageState extends State<DriverHistoryPage> {
                           children: [
                             Text(
                               DateFormat(
-                                'yyyy年MM月dd日',
-                              ).format(_selectedDay ?? _focusedDay),
+                                'yyyy年MM朁Ed日',
+                              ).format(normalizedSelected),
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
-                              '日次売上合計: ¥${NumberFormat('#,###').format(totalSales)}',
+                              '日次売上合訁E ¥${NumberFormat('#,###').format(totalSales)}',
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -145,7 +166,7 @@ class _DriverHistoryPageState extends State<DriverHistoryPage> {
                       ),
                       Expanded(
                         child: selectedRides.isEmpty
-                            ? const Center(child: Text('この日の記録はありません'))
+                            ? const Center(child: Text('こ�E日の記録はありません'))
                             : ListView.builder(
                                 itemCount: selectedRides.length,
                                 itemBuilder: (context, index) {
@@ -176,7 +197,7 @@ class _DriverHistoryPageState extends State<DriverHistoryPage> {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            '$time - 客ID: ${ride['customer_id']}',
+                                            '$time - 客: ${ride['customer_name'] ?? ride['customer_id'] ?? '不�Eなユーザー'}',
                                           ),
                                           Text(
                                             '¥${NumberFormat('#,###').format(fare)}',
@@ -205,7 +226,7 @@ class _DriverHistoryPageState extends State<DriverHistoryPage> {
                                             ),
                                           if (comment != null &&
                                               comment.isNotEmpty)
-                                            Text('コメント: $comment'),
+                                            Text('コメンチE $comment'),
                                         ],
                                       ),
                                     ),
