@@ -1,35 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../main.dart';
+import '../providers/auth_provider.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _idController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
   void _handleLogin() async {
+    final username = _idController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('IDとパスワードを入力してください')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
-    // TODO: 各代行会社向けのAPIへ繋ぎます
-    await Future.delayed(const Duration(seconds: 1)); 
-    
-    if (mounted) {
-      // 仮のログイン処理
-      if (_idController.text == 'admin' && _passwordController.text == 'daiko123') {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainScaffold()),
-        );
-      } else {
+
+    try {
+      final success = await ref.read(authProvider.notifier).login(username, password);
+      
+      if (mounted) {
+        if (success) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const MainScaffold()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ログインに失敗しました。IDまたはパスワード、あるいは権限を確認してください')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('IDまたはパスワードが正しくありません')),
+          SnackBar(content: Text('通信エラーが発生しました: $e')),
         );
       }
-      setState(() => _isLoading = false);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
