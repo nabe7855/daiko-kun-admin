@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:daiko_kun_shared/daiko_kun_shared.dart';
 
 import 'auth_provider.dart';
 
@@ -39,7 +40,7 @@ class CompanyNotifier extends AsyncNotifier<CompanyStats?> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.68.139.36:8080/admin/company/stats'),
+        Uri.parse('${ApiConstants.baseUrl}/admin/company/stats'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 200) {
@@ -57,7 +58,7 @@ class CompanyNotifier extends AsyncNotifier<CompanyStats?> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.68.139.36:8080/admin/drivers'),
+        Uri.parse('${ApiConstants.baseUrl}/admin/drivers'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 200) {
@@ -75,7 +76,7 @@ class CompanyNotifier extends AsyncNotifier<CompanyStats?> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.68.139.36:8080/admin/ride-requests'),
+        Uri.parse('${ApiConstants.baseUrl}/admin/ride-requests'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 200) {

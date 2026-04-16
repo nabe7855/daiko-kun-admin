@@ -1,34 +1,25 @@
 import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:daiko_kun_shared/daiko_kun_shared.dart';
 
-class CompanyAdminState {
-  final String id;
-  final String companyId;
-  final String name;
-  final String role;
-  final String token;
+class AuthState {
+  final AdminUser? user;
+  final String? token;
 
-  CompanyAdminState({
-    required this.id,
-    required this.companyId,
-    required this.name,
-    required this.role,
-    required this.token,
-  });
+  AuthState({this.user, this.token});
 }
 
-class AuthNotifier extends Notifier<CompanyAdminState?> {
+class AuthNotifier extends Notifier<AuthState> {
   @override
-  CompanyAdminState? build() {
-    return null; // 初期は未ログイン
+  AuthState build() {
+    return AuthState(); // 初期は未ログイン
   }
 
   Future<bool> login(String username, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('http://10.68.139.36:8080/admin/login'),
+        Uri.parse('${ApiConstants.adminUrl}/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': username, 'password': password}),
       );
@@ -36,20 +27,17 @@ class AuthNotifier extends Notifier<CompanyAdminState?> {
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final token = body['token'];
-        final user = body['user'];
+        final userData = body['user'];
+
+        // 共通モデルを使用してデコード
+        final user = AdminUser.fromJson(userData);
 
         // 会社管理者またはシステム管理者のみ許可
-        if (user['role'] != 'company_admin' && user['role'] != 'super_admin') {
+        if (user.role != 'company_admin' && user.role != 'super_admin') {
           return false; 
         }
 
-        state = CompanyAdminState(
-          id: user['id'],
-          companyId: user['company_id'] ?? '', // super_adminの場合は空
-          name: user['name'],
-          role: user['role'],
-          token: token,
-        );
+        state = AuthState(user: user, token: token);
         return true;
       }
     } catch (e) {
@@ -59,10 +47,10 @@ class AuthNotifier extends Notifier<CompanyAdminState?> {
   }
 
   void logout() {
-    state = null;
+    state = AuthState();
   }
 }
 
-final authProvider = NotifierProvider<AuthNotifier, CompanyAdminState?>(
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
   AuthNotifier.new,
 );

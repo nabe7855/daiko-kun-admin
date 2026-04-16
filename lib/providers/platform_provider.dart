@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:daiko_kun_shared/daiko_kun_shared.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class PlatformStats {
   final int totalCompanies;
@@ -58,7 +59,7 @@ class PlatformNotifier extends AsyncNotifier<void> {
   Future<PlatformStats?> fetchStats() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.68.139.36:8080/admin/platform/stats'),
+        Uri.parse('${ApiConstants.baseUrl}/admin/platform/stats'),
       );
       if (response.statusCode == 200) {
         return PlatformStats.fromJson(json.decode(response.body));
@@ -72,7 +73,7 @@ class PlatformNotifier extends AsyncNotifier<void> {
   Future<List<Company>> fetchCompanies() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.68.139.36:8080/admin/platform/companies'),
+        Uri.parse('${ApiConstants.baseUrl}/admin/platform/companies'),
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -87,7 +88,7 @@ class PlatformNotifier extends AsyncNotifier<void> {
   Future<bool> updateCompanyStatus(String id, String status) async {
     try {
       final response = await http.patch(
-        Uri.parse('http://10.68.139.36:8080/admin/platform/companies/$id/status'),
+        Uri.parse('${ApiConstants.baseUrl}/admin/platform/companies/$id/status'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'status': status}),
       );

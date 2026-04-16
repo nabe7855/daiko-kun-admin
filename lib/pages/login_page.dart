@@ -42,6 +42,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           );
         }
       }
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
